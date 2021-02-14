@@ -1,6 +1,5 @@
 from micropython import const
 import board
-import time
 import digitalio
 import _pew
 
@@ -63,12 +62,12 @@ def show(pix):
 def tick(delay):
     global _tick
 
-    now = time.monotonic()
-    _tick += delay
-    if _tick < now:
-        _tick = now
-    else:
-        time.sleep(_tick - now)
+    _tick = (_tick + int(delay * 0x3000)) % 0xffff
+    if (_tick - _pew.get_ticks()) % 0xffff > 0x8fff:
+        _tick = _pew.get_ticks()
+        return
+    while (_tick - _pew.get_ticks()) % 0xffff < 0x8fff:
+        pass
 
 
 class GameOver(SystemExit):
@@ -193,7 +192,7 @@ def init():
         return
 
     _screen = Pix(8, 8)
-    _tick = time.monotonic()
+    _tick = _pew.get_ticks()
 
     _rows = (
         digitalio.DigitalInOut(board._R1),
